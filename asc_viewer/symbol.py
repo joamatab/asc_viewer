@@ -248,7 +248,7 @@ class Symbol(BoundedCanvas):
                 text_m,
             )
             angle = 90 if window["align"][0] == "V" else 0
-            if rotation == 270 or rotation == 90:
+            if rotation in [270, 90]:
                 angle -= 90
             if angle:
                 y = y2
