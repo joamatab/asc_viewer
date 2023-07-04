@@ -158,7 +158,7 @@ class AscCanvas(BoundedCanvas, Viewport):
         m.Translate(x, y)
 
         # the only valid text directions are right or up
-        if rotation % 360 == 180 or rotation % 360 == 90:
+        if rotation % 360 in [180, 90]:
             m.Translate(w / 2, h / 2)
             m.Rotate(math.pi)
             m.Translate(-w / 2, -h / 2)
@@ -171,9 +171,7 @@ class AscCanvas(BoundedCanvas, Viewport):
         stack = [wire_point]
         while stack:
             wire_point = stack.pop()
-            # check for a custom net name
-            flag = self.flags.get((wire_point.x, wire_point.y))
-            if flag:
+            if flag := self.flags.get((wire_point.x, wire_point.y)):
                 assert (
                     self.net_override is None or self.net_override == flag["net"]
                 ), f"Conflicting net names are assigned: {self.net_override} and {flag['net']}"
@@ -269,7 +267,7 @@ class AscCanvas(BoundedCanvas, Viewport):
             elif words[0] == "SYMATTR":
                 attr = " ".join(words[2:])
                 if words[1] == "InstName" and self.instance_name != "":
-                    attr = self.instance_name + "." + attr
+                    attr = f"{self.instance_name}.{attr}"
                 instances[-1].attrs[words[1]] = attr
             elif words[0] == "SYMBOL":
                 instance = SymbolInstance(
@@ -350,8 +348,7 @@ class AscCanvas(BoundedCanvas, Viewport):
 
         # add instance connections to nets and label spur types
         for wire_point in self.wire_points.values():
-            res = pin_positions.get((wire_point.x, wire_point.y))
-            if res:
+            if res := pin_positions.get((wire_point.x, wire_point.y)):
                 instance, pin = res
                 pin_name = str(pin.symbol_pin.index)
                 connection = Connection(instance, pin, pin_name)
@@ -396,17 +393,14 @@ class AscCanvas(BoundedCanvas, Viewport):
                 path.AddLineToPoint(x1, y1)
                 wire_point = self.wire_points.get((x1, y1))
                 if wire_point and len(wire_point.wires) == 1:
-                    direction = wire_point.direction
-                    if direction:
+                    if direction := wire_point.direction:
                         m = self.gc.CreateMatrix()
                         m.Translate(x1, y1)
                         m.Rotate(math.pi / 2 * direction)
                         m.Translate(-x1, -y1)
                         path.Transform(m)
                 self.path.AddPath(path)
-            elif flag["type"] == "Out":
-                pass
-            elif flag["type"] == "BiDir":
+            elif flag["type"] in ["Out", "BiDir"]:
                 pass
             elif flag["net"] == "0":
                 path = self.gc.CreatePath()
@@ -500,7 +494,7 @@ class AscCanvas(BoundedCanvas, Viewport):
         if self.instance_name != "":
             # remove hierarchical part of instance name
             local_instance = instance_name[len(self.instance_name) + 1 :].split(".")[0]
-            instance_name = self.instance_name + "." + local_instance
+            instance_name = f"{self.instance_name}.{local_instance}"
 
         s = self.symbol_instances.get(instance_name)
         if s is None:
